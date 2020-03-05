@@ -10,7 +10,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
   TextEditingController _txtController = TextEditingController();
 
   List _taskList = [];
@@ -22,7 +21,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<File> _getFile() async {
-
     final path = await _localPath;
     return File('$path//dados.json');
 
@@ -34,60 +32,51 @@ class _HomeState extends State<Home> {
 
   _saveFile() async {
     var file = await _getFile();
-    String data = json.encode( _taskList );
-    file.writeAsString( data );
+    String data = json.encode(_taskList);
+    file.writeAsString(data);
   }
 
   _addtask() async {
-
     String typedText = _txtController.text;
 
     Map<String, dynamic> task = Map();
-    task["title"] = typedText ;
+    task["title"] = typedText;
     task["done"] = false;
 
     setState(() {
-      _taskList.add( task );
+      _taskList.add(task);
     });
 
     _txtController.clear();
 
     this._saveFile();
-
   }
 
   _readFile() async {
-
-    try{
-
+    try {
       final file = await _getFile();
       return file.readAsString();
-
-    } catch(e) {
+    } catch (e) {
       print('erro: ' + e.toString());
       return null;
     }
-
   }
 
   @override
   void initState() {
-
     super.initState();
 
     _saveFile();
 
-    this._readFile().then( (data) {
+    this._readFile().then((data) {
       setState(() {
         _taskList = json.decode(data);
       });
     });
-
   }
 
   @override
   Widget build(BuildContext context) {
-
     _saveFile();
 //    print("itens: ${ _taskList.toString() }");
 
@@ -97,90 +86,96 @@ class _HomeState extends State<Home> {
         backgroundColor: Colors.purple,
       ),
       body: Container(
-        child: Column(
-          children: <Widget>[
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.all(10.0),
-                itemCount: _taskList.length,
-                itemBuilder: (context, index){
-
-                  return CheckboxListTile(
-                    title: Text( _taskList[index]["title"] ),
-                    value: _taskList[index]["done"],
-                    activeColor: Colors.purple,
-                    onChanged: (newState){
-
-                      setState(() {
-                        _taskList[index]['done'] = newState;
-                      });
-
-                      _saveFile();
-
-                    }
-                  );
-
-                  /*
-                  return ListTile(
-                    title: Text( _taskList[index]["title"] ),
-                  );
-                  */
-                },
-              ),
-            )
-          ],
-        )
-      ),
+          child: Column(
+        children: <Widget>[
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.all(10.0),
+              itemCount: _taskList.length,
+              itemBuilder: createListItem,
+            ),
+          )
+        ],
+      )),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.purple,
         onPressed: () {
-
           showDialog(
-            context: context,
-            builder: (context){
-
-              return AlertDialog(
-                title: Text('Adcionar tarefa'),
-                content: TextField(
-                  keyboardType: TextInputType.text,
-                  decoration: InputDecoration(
-                    labelText: "Digite a sua tarefa"
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text('Adcionar tarefa'),
+                  content: TextField(
+                    keyboardType: TextInputType.text,
+                    decoration:
+                        InputDecoration(labelText: "Digite a sua tarefa"),
+                    onChanged: (text) {},
+                    controller: _txtController,
                   ),
-                  onChanged: (text) {},
-                  controller: _txtController,
-                ),
-                actions: <Widget>[
-                  FlatButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancelar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500
+                  actions: <Widget>[
+                    FlatButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(fontWeight: FontWeight.w500),
                       ),
+                      textColor: Colors.grey,
                     ),
-                    textColor: Colors.grey,
-                  ),
-                  FlatButton(
-                    onPressed: (){
-                      _addtask();
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Salvar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold
+                    FlatButton(
+                      onPressed: () {
+                        _addtask();
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'Salvar',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  )
-                ],
-              );
-
-            }
-          );
-
+                    )
+                  ],
+                );
+              });
         },
         child: Icon(Icons.add),
       ),
     );
+  }
+
+  Widget createListItem(context, index) {
+    final item = _taskList[index]['title'];
+
+    return Dismissible(
+        key: Key(item),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          color: Colors.red,
+          padding: EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              Icon(
+                Icons.delete,
+                color: Colors.white,
+              )
+            ],
+          ),
+        ),
+        onDismissed: (direction) {
+
+          // Remove item from list
+          _taskList.removeAt(index);
+          _saveFile();
+
+        },
+        child: CheckboxListTile(
+            title: Text(_taskList[index]["title"]),
+            value: _taskList[index]["done"],
+            activeColor: Colors.purple,
+            onChanged: (newState) {
+              setState(() {
+                _taskList[index]['done'] = newState;
+              });
+
+              _saveFile();
+            }));
   }
 }
