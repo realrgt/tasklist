@@ -10,28 +10,26 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+
   TextEditingController _txtController = TextEditingController();
 
   List _taskList = [];
 
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
+  Map<String, dynamic> _lastRemovedTask = Map();
 
-    return directory.path;
-  }
 
   Future<File> _getFile() async {
-    final path = await _localPath;
-    return File('$path//dados.json');
 
-//
-//    Directory directory = await getApplicationDocumentsDirectory();
-//
-//    return File( "${directory.path}/dados.json" );
+    Directory directory = await getApplicationDocumentsDirectory();
+
+    File file = File( "${directory.path}/dados.json" );
+
+    print(directory.listSync());
+    return file;
   }
 
   _saveFile() async {
-    var file = await _getFile();
+    File file = await _getFile();
     String data = json.encode(_taskList);
     file.writeAsString(data);
   }
@@ -141,10 +139,9 @@ class _HomeState extends State<Home> {
   }
 
   Widget createListItem(context, index) {
-    final item = _taskList[index]['title'];
 
     return Dismissible(
-        key: Key(item),
+        key: Key( DateTime.now().millisecondsSinceEpoch.toString() ),
         direction: DismissDirection.endToStart,
         background: Container(
           color: Colors.red,
@@ -161,9 +158,32 @@ class _HomeState extends State<Home> {
         ),
         onDismissed: (direction) {
 
+          // get item toBe removed
+          _lastRemovedTask = _taskList[index];
+
           // Remove item from list
           _taskList.removeAt(index);
           _saveFile();
+
+          // snackBar
+          final snackbar = SnackBar(
+            content: Text("Tarrefa removida"),
+            action: SnackBarAction(
+                label: "Desfazer",
+                onPressed: (){
+
+                  // insert last removed task at its position
+                  setState(() {
+                    _taskList.insert(index, _lastRemovedTask);
+                  });
+
+                  _saveFile();
+
+                }
+            ),
+          );
+
+          Scaffold.of(context).showSnackBar(snackbar);
 
         },
         child: CheckboxListTile(
