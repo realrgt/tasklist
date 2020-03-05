@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -8,14 +11,86 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
-  List<String> _taskList = ["Rgt", "Ergito", "Vilanculos", "Rubildo"];
+  TextEditingController _txtController = TextEditingController();
+
+  List _taskList = [];
+
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    return directory.path;
+  }
+
+  Future<File> _getFile() async {
+
+    final path = await _localPath;
+    return File('$path//dados.json');
+
+//
+//    Directory directory = await getApplicationDocumentsDirectory();
+//
+//    return File( "${directory.path}/dados.json" );
+  }
+
+  _saveFile() async {
+    var file = await _getFile();
+    String data = json.encode( _taskList );
+    file.writeAsString( data );
+  }
 
   _addtask() async {
+
+    String typedText = _txtController.text;
+
+    Map<String, dynamic> task = Map();
+    task["title"] = typedText ;
+    task["done"] = false;
+
+    setState(() {
+      _taskList.add( task );
+    });
+
+    _txtController.clear();
+
+    this._saveFile();
+
+  }
+
+  _readFile() async {
+
+    try{
+
+      final file = await _getFile();
+      return file.readAsString();
+
+    } catch(e) {
+      print('erro: ' + e.toString());
+      return null;
+    }
+
+  }
+
+  @override
+  void initState() {
+
+    super.initState();
+
+    _saveFile();
+
+    this._readFile().then( (data) {
+      setState(() {
+        _taskList = json.decode(data);
+      });
+    });
 
   }
 
   @override
   Widget build(BuildContext context) {
+
+    _saveFile();
+//    print("itens: ${ _taskList.toString() }");
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Lista Tarefas"),
@@ -29,9 +104,27 @@ class _HomeState extends State<Home> {
                 padding: EdgeInsets.all(10.0),
                 itemCount: _taskList.length,
                 itemBuilder: (context, index){
-                  return ListTile(
-                    title: Text(_taskList[index]),
+
+                  return CheckboxListTile(
+                    title: Text( _taskList[index]["title"] ),
+                    value: _taskList[index]["done"],
+                    activeColor: Colors.purple,
+                    onChanged: (newState){
+
+                      setState(() {
+                        _taskList[index]['done'] = newState;
+                      });
+
+                      _saveFile();
+
+                    }
                   );
+
+                  /*
+                  return ListTile(
+                    title: Text( _taskList[index]["title"] ),
+                  );
+                  */
                 },
               ),
             )
@@ -54,6 +147,7 @@ class _HomeState extends State<Home> {
                     labelText: "Digite a sua tarefa"
                   ),
                   onChanged: (text) {},
+                  controller: _txtController,
                 ),
                 actions: <Widget>[
                   FlatButton(
@@ -68,9 +162,7 @@ class _HomeState extends State<Home> {
                   ),
                   FlatButton(
                     onPressed: (){
-
-                      // TODO: salvar
-
+                      _addtask();
                       Navigator.pop(context);
                     },
                     child: Text(
